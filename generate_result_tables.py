@@ -149,3 +149,25 @@ if __name__ == '__main__':
 
     for row in data:
         print(f"{row[0]:<30} {row[1]:<30} {row[2]:<30} {row[3]:<30} {row[4]:<30} {row[5]:<30}")
+
+    # Experiment 1.2.2
+    print("==== Experimental Setting 2.2 =====")
+    data = [
+        ["Dataset"] + list(map(lambda x: x.split('/')[1], global_values.models))
+    ]
+
+    for dataset in global_values.datasets:
+        output_row = [dataset]
+        for model in global_values.models:
+            if not os.path.exists(f'data/outputs/{dataset}/{model}/step_10_long_context_med_normed.csv'):
+                output_row.append('')
+                continue
+            df = pd.read_csv(f'data/outputs/{dataset}/{model}/step_10_long_context_med_normed.csv',
+                             true_values=["TRUE"], false_values=["FALSE"])
+            df_correct_ans = df[df['expanded_context_answer_correct'] == True]
+            output_row.append(
+                f'{df_correct_ans.shape[0]}/{df.shape[0]} ({df_correct_ans.shape[0] / df.shape[0]:.2%})')
+        data.append(output_row)
+
+    for row in data:
+        print(f"{row[0]:<30} {row[1]:<30} {row[2]:<30} {row[3]:<30} {row[4]:<30} {row[5]:<30}")

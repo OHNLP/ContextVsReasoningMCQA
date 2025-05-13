@@ -5,22 +5,24 @@ import pandas as pd
 from pandas import DataFrame
 
 import global_values
-from experiments.experimental_setting_1 import call_experimental_setting_1
+from experiments.experimental_setting_1_1 import call_experimental_setting_1_1
+from experiments.experimental_setting_1_2_1 import call_experimental_setting_1_2_1
+from experiments.experimental_setting_1_2_2 import call_experimental_setting_1_2_2
+from experiments.experimental_setting_2_1 import call_experimental_setting_2_1
+from experiments.experimental_setting_2_2 import call_experimental_setting_2_2
+from experiments.experimental_setting_3_all import call_experimental_setting_3_all
 
-from experiments.experimental_setting_2_5 import call_experimental_setting_2_and_5
-from experiments.experimental_setting_3 import call_experimental_setting_3
-from experiments.experimental_setting_4 import call_experimental_setting_4
-
-model_to_merge = 'Qwen/Qwen2.5-32B-Instruct'
+merge_id = 'small_models'
+models_to_merge = ["deepseek-ai/DeepSeek-R1-Distill-Llama-8B", "meta-llama/Llama-3.1-8B-Instruct"]
 
 
 def perform_result_merge(experiment_num, result_file_name, indices_to_remove: DataFrame, dataset, model, result_column=None):
-    if not os.path.exists(f'data/outputs/{dataset}/merge/{model_to_merge}/{model}'):
-        os.makedirs(f'data/outputs/{dataset}/merge/{model_to_merge}/{model}')
+    if not os.path.exists(f'data/outputs/{dataset}/merge/{merge_id}/{model}'):
+        os.makedirs(f'data/outputs/{dataset}/merge/{merge_id}/{model}')
 
     # Merge experiment
     if os.path.exists(
-            f'data/outputs/{dataset}/merge/{model_to_merge}/{model}/{result_file_name}.csv'):
+            f'data/outputs/{dataset}/merge/{merge_id}/{model}/{result_file_name}.csv'):
         # print(f'Skipping Merge of Experiment {experiment_num} for {dataset}/{model} as it is already complete')
         return
 
@@ -29,12 +31,12 @@ def perform_result_merge(experiment_num, result_file_name, indices_to_remove: Da
         print(
             f'WARNING: Cannot Merge Experiment {experiment_num} for {dataset}/{model} as an original result does not exist to merge!')
         return
-    if not os.path.exists(f'data/outputs/{dataset}/diffs/{model_to_merge}/{model}/{result_file_name}.csv'):
+    if not os.path.exists(f'data/outputs/{dataset}/diffs/{merge_id}/{model}/{result_file_name}.csv'):
         print(
             f'WARNING: Cannot Merge Experiment {experiment_num} for {dataset}/{model} as a diff result does not exist to merge!')
         return
     df_orig = pd.read_csv(f'data/outputs/{dataset}/{model}/{result_file_name}.csv', index_col='question_idx')
-    df_insert = pd.read_csv(f'data/outputs/{dataset}/diffs/{model_to_merge}/{model}/{result_file_name}.csv',
+    df_insert = pd.read_csv(f'data/outputs/{dataset}/diffs/{merge_id}/{model}/{result_file_name}.csv',
                             index_col='question_idx')
     if result_column is not None:
         if (df_orig[result_column].isna() | df_orig[result_column].astype(str).str.strip().eq('')) .any():
@@ -52,14 +54,14 @@ def perform_result_merge(experiment_num, result_file_name, indices_to_remove: Da
     if df_out.index.drop_duplicates().shape[0] != 100:
         print(f'ERROR: merge record size incorrect. Aborting')
         return
-    df_out.to_csv(f'data/outputs/{dataset}/merge/{model_to_merge}/{model}/{result_file_name}.csv')
+    df_out.to_csv(f'data/outputs/{dataset}/merge/{merge_id}/{model}/{result_file_name}.csv')
 
 
 
 if __name__ == '__main__':
     for dataset_name in global_values.datasets:
-        if os.path.exists(f'data/outputs/{dataset_name}/diffs/{model_to_merge}'):
-            print(f'Skipping generation of diff dataset for {model_to_merge} on {dataset_name} as it already exists')
+        if os.path.exists(f'data/outputs/{dataset_name}/diffs/{merge_id}'):
+            print(f'Skipping generation of diff dataset for {merge_id} on {dataset_name} as it already exists')
             continue
         # First figure out the new common correctly answered questions for this dataset
         common_correct: DataFrame = None
@@ -90,13 +92,13 @@ if __name__ == '__main__':
         print(f'{dataset_name}: Sampling {num_to_replace} items')
 
         # Now write diff
-        output_dir = f'data/outputs/{dataset_name}/diffs/{model_to_merge}'
+        output_dir = f'data/outputs/{dataset_name}/diffs/{merge_id}'
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
         new_sampled_records.to_csv(
-            f'data/outputs/{dataset_name}/diffs/{model_to_merge}/step_1_mcqa_all_models_correct_sample.csv')
+            f'data/outputs/{dataset_name}/diffs/{merge_id}/step_1_mcqa_all_models_correct_sample.csv')
         to_remove.to_csv(
-            f'data/outputs/{dataset_name}/diffs/{model_to_merge}/step_1_mcqa_all_models_correct_sample_removed.csv')
+            f'data/outputs/{dataset_name}/diffs/{merge_id}/step_1_mcqa_all_models_correct_sample_removed.csv')
 
         # Rewrite new sample
         to_write = pd.concat([to_keep, new_sampled_records])
@@ -105,14 +107,14 @@ if __name__ == '__main__':
     # Now run experiments in prep for merge
     for dataset_name in global_values.datasets:
         for model_name in global_values.models:
-            work_dir = f'diffs/{model_to_merge}'
-            if model_name == model_to_merge:
+            work_dir = f'diffs/{merge_id}'
+            if model_name in models_to_merge:
                 work_dir = ''
             # -- Settings 1 and 4
             if not os.path.exists(
                     f'data/outputs/{dataset_name}/{work_dir}/{model_name}/step_6_self_consistency_permuted_new.csv'):
                 print(f'Generating Merge for {dataset_name}/{work_dir}/{model_name} Experimental Setting 1')
-                process = multiprocessing.Process(target=call_experimental_setting_1,
+                process = multiprocessing.Process(target=call_experimental_setting_2_1,
                                                   args=(model_name, dataset_name, work_dir),
                                                   name="exp_setting_1")
                 process.start()
@@ -126,7 +128,7 @@ if __name__ == '__main__':
 
             if not os.path.exists(f'data/outputs/{dataset_name}/{work_dir}/{model_name}/step_7_self_consistency_permuted_no_context.csv'):
                 print(f'Generating Merge for {dataset_name}/{work_dir}/{model_name} Experimental Setting 4')
-                process = multiprocessing.Process(target=call_experimental_setting_4,
+                process = multiprocessing.Process(target=call_experimental_setting_2_2,
                                                   args=(model_name, dataset_name, work_dir),
                                                   name="exp_setting_1")
                 process.start()
@@ -141,7 +143,7 @@ if __name__ == '__main__':
             if not os.path.exists(f'data/outputs/{dataset_name}/{work_dir}/{model_name}/step_5_no_correct_answer.csv'):
                 print(f'Generating Merge for {dataset_name}/{work_dir}/{model_name} Experimental Settings 2 & 5')
 
-                process = multiprocessing.Process(target=call_experimental_setting_2_and_5,
+                process = multiprocessing.Process(target=call_experimental_setting_3_all,
                                                   args=(model_name, dataset_name, work_dir),
                                                   name="exp_setting_2_5")
                 process.start()
@@ -154,9 +156,37 @@ if __name__ == '__main__':
                         f'Warning: Norm for experimental setting 2/5 {dataset_name}/{work_dir}/{model_name} Does not yet Exist')
 
             # -- Setting 3
+            if not os.path.exists(f'data/outputs/{dataset_name}/{work_dir}/{model_name}/step_9_shuffled_context.csv'):
+                print(f'Generating Merge for {dataset_name}/{work_dir}/{model_name} Experimental Setting 3')
+                process = multiprocessing.Process(target=call_experimental_setting_1_1,
+                                                  args=(model_name, dataset_name, work_dir),
+                                                  name="exp_setting_3")
+                process.start()
+                process.join()
+            else:
+                print(f'Skipping experimental setting 3 for {dataset_name}/{work_dir}/{model_name}: Already Exists')
+                if not os.path.exists(
+                        f'data/outputs/{dataset_name}/{work_dir}/{model_name}/step_9_shuffled_context_normed.csv'):
+                    print(
+                        f'Warning: Norm for experimental setting 3 {dataset_name}/{work_dir}/{model_name} Does not yet Exist')
+
+            if not os.path.exists(f'data/outputs/{dataset_name}/{work_dir}/{model_name}/step_10_long_context_med.csv'):
+                print(f'Generating Merge for {dataset_name}/{work_dir}/{model_name} Experimental Setting 3')
+                process = multiprocessing.Process(target=call_experimental_setting_1_2_2,
+                                                  args=(model_name, dataset_name, work_dir),
+                                                  name="exp_setting_3")
+                process.start()
+                process.join()
+            else:
+                print(f'Skipping experimental setting 3 for {dataset_name}/{work_dir}/{model_name}: Already Exists')
+                if not os.path.exists(
+                        f'data/outputs/{dataset_name}/{work_dir}/{model_name}/step_10_long_context_med_normed.csv'):
+                    print(
+                        f'Warning: Norm for experimental setting 3 {dataset_name}/{work_dir}/{model_name} Does not yet Exist')
+
             if not os.path.exists(f'data/outputs/{dataset_name}/{work_dir}/{model_name}/step_8_long_context.csv'):
                 print(f'Generating Merge for {dataset_name}/{work_dir}/{model_name} Experimental Setting 3')
-                process = multiprocessing.Process(target=call_experimental_setting_3,
+                process = multiprocessing.Process(target=call_experimental_setting_1_2_1,
                                                   args=(model_name, dataset_name, work_dir),
                                                   name="exp_setting_3")
                 process.start()
@@ -171,37 +201,41 @@ if __name__ == '__main__':
     # Now Merge
     for dataset_name in global_values.datasets:
         if not os.path.exists(
-                f'data/outputs/{dataset_name}/diffs/{model_to_merge}/step_1_mcqa_all_models_correct_sample_removed.csv'):
+                f'data/outputs/{dataset_name}/diffs/{merge_id}/step_1_mcqa_all_models_correct_sample_removed.csv'):
             print(
                 f'Skipping Merge for {dataset_name} as a diff result for removal does not exist to merge!')
             continue
         to_remove = pd.read_csv(
-            f'data/outputs/{dataset_name}/diffs/{model_to_merge}/step_1_mcqa_all_models_correct_sample_removed.csv',
+            f'data/outputs/{dataset_name}/diffs/{merge_id}/step_1_mcqa_all_models_correct_sample_removed.csv',
             index_col='question_idx')
         for model_name in global_values.models:
             if model_name == model_to_merge:
                 continue
-            perform_result_merge('Setting 1 Raw', 'step_6_self_consistency_permuted_new', to_remove, dataset_name,
+            perform_result_merge('Setting 2_1 Raw', 'step_6_self_consistency_permuted_new', to_remove, dataset_name,
                                  model_name)
-            perform_result_merge('Setting 1 Norm', 'step_6_self_consistency_permuted_new_normed', to_remove,
+            perform_result_merge('Setting 2_1 Norm', 'step_6_self_consistency_permuted_new_normed', to_remove,
                                  dataset_name,
                                  model_name,
                                  'permuted_answer_correct')
-            perform_result_merge('Setting 2/5 Raw', 'step_5_no_correct_answer', to_remove, dataset_name,
+            perform_result_merge('Setting 3_all Raw', 'step_5_no_correct_answer', to_remove, dataset_name,
                                  model_name)
-            perform_result_merge('Setting 2/5 Normed', 'step_5_no_correct_answer_normed', to_remove, dataset_name,
+            perform_result_merge('Setting 3_all Normed', 'step_5_no_correct_answer_normed', to_remove, dataset_name,
                                  model_name, 'no_valid_option_explicit_answer_correct')
-            perform_result_merge('Setting 3 Raw', 'step_8_long_context', to_remove, dataset_name,
+            perform_result_merge('Setting 1_2_1 Raw', 'step_8_long_context', to_remove, dataset_name,
                                  model_name)
-            perform_result_merge('Setting 3 Normed', 'step_8_long_context_normed', to_remove, dataset_name,
+            perform_result_merge('Setting 1_2_1 Normed', 'step_8_long_context_normed', to_remove, dataset_name,
                                  model_name, 'expanded_context_answer_correct')
-            perform_result_merge('Setting 4 Raw', 'step_7_self_consistency_permuted_no_context', to_remove,
+            perform_result_merge('Setting 1_2_2 Raw', 'step_10_long_context_med', to_remove, dataset_name,
+                                 model_name)
+            perform_result_merge('Setting 1_2_2 Normed', 'step_10_long_context_med_normed', to_remove, dataset_name,
+                                 model_name, 'expanded_context_answer_correct')
+            perform_result_merge('Setting 2_2 Raw', 'step_7_self_consistency_permuted_no_context', to_remove,
                                  dataset_name,
                                  model_name)
-            perform_result_merge('Setting 4 Normed', 'step_7_self_consistency_permuted_no_context_normed', to_remove,
+            perform_result_merge('Setting 2_2 Normed', 'step_7_self_consistency_permuted_no_context_normed', to_remove,
                                  dataset_name,
                                  model_name, 'permuted_answer_correct')
-            perform_result_merge('Setting 6 Raw', 'step_9_shuffled_context', to_remove, dataset_name,
+            perform_result_merge('Setting 1_1 Raw', 'step_9_shuffled_context', to_remove, dataset_name,
                                  model_name)
-            perform_result_merge('Setting 6 Normed', 'step_9_shuffled_context_normed', to_remove, dataset_name,
+            perform_result_merge('Setting 1_1 Normed', 'step_9_shuffled_context_normed', to_remove, dataset_name,
                                  model_name, 'shuffled_context_answer_correct')

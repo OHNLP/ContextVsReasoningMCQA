@@ -6,8 +6,8 @@ from openai import AzureOpenAI
 from transformers import AutoModelForCausalLM, AutoTokenizer, Pipeline, pipeline
 from vllm import LLM
 
-os.environ['HF_HOME'] = ''
-os.environ['HF_TOKEN'] = ''
+os.environ['HF_HOME'] = 'REDACTED'
+os.environ['HF_TOKEN'] = 'REDACTED'
 # os.environ["VLLM_WORKER_MULTIPROC_METHOD"] = "spawn"
 
 from typing import List
@@ -22,10 +22,21 @@ datasets: List[str] = [
 models: List[str] = [
     "azure/o1",
     "deepseek-ai/DeepSeek-R1-Distill-Llama-70B",
+    "deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
     "meta-llama/Llama-3.3-70B-Instruct",
+    "meta-llama/Llama-3.1-8B-Instruct",
     "Qwen/QwQ-32B",
     "Qwen/Qwen2.5-32B-Instruct"
 ]
+
+tens_parallelism_setting = {
+    "deepseek-ai/DeepSeek-R1-Distill-Llama-70B": 3,
+    "deepseek-ai/DeepSeek-R1-Distill-Llama-8B": 1,
+    "meta-llama/Llama-3.3-70B-Instruct": 3,
+    "meta-llama/Llama-3.1-8B-Instruct": 1,
+    "Qwen/QwQ-32B": 1,
+    "Qwen/Qwen2.5-32B-Instruct": 1
+}
 
 
 class HuggingfaceModelWrapper:
@@ -105,7 +116,7 @@ def get_pipeline_vllm(model_name: str) -> LLM:
         # distributed_executor and disable_custom_all_reduce used to support VLLM model unloading see: https://github.com/vllm-project/vllm/issues/1908
         # os.environ["VLLM_WORKER_MULTIPROC_METHOD"] = "spawn"
         llm = LLM(model=model_name, task="generate", trust_remote_code=True,
-                  tensor_parallel_size=8)  # , distributed_executor_backend="mp", disable_custom_all_reduce=True
+                  tensor_parallel_size=tens_parallelism_setting[model_name])  # , distributed_executor_backend="mp", disable_custom_all_reduce=True
     else:
         # llm = LLM(model=model_name, task="generate", trust_remote_code=True, tensor_parallel_size=8, cpu_offload_gb=100) #88432
         llm = LLM(model=model_name, task="generate", trust_remote_code=True, tensor_parallel_size=8,
@@ -115,9 +126,9 @@ def get_pipeline_vllm(model_name: str) -> LLM:
 
 
 def get_pipeline_openai():
-    endpoint = os.getenv("ENDPOINT_URL", "https://teamai-001-eus2-aoai.openai.azure.com/")
+    endpoint = os.getenv("ENDPOINT_URL", "REDACTED")
     subscription_key = os.getenv("AZURE_OPENAI_API_KEY",
-                                 "")
+                                 "REDACTED")
     # Initialize Azure OpenAI Service client with key-based authentication
     client = AzureOpenAI(
         azure_endpoint=endpoint,

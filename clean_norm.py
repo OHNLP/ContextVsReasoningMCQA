@@ -7,6 +7,7 @@ from pandas import DataFrame
 
 
 def clean(input: str):
+    input = str(input)
     split = input.split('\n')
     # First check last line
     last_line = split[len(split)-1].strip()
