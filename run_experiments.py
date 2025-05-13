@@ -63,7 +63,7 @@ if __name__ == '__main__':
                     print(f'Warning: Norm for experimental setting 2_1 {dataset_name}/{model_name} Does not yet Exist')
 
             if not os.path.exists(f'data/outputs/{dataset_name}/{model_name}/step_7_self_consistency_permuted_no_context.csv'):
-                process = multiprocessing.Process(target=call_experimental_setting_2_2(),
+                process = multiprocessing.Process(target=call_experimental_setting_2_2,
                                                   args=(model_name, dataset_name, ''),
                                                   name="exp_setting_2_2")
                 process.start()
